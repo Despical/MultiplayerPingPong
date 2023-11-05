@@ -1,14 +1,19 @@
 package me.despical.pingpong.game;
 
+import me.despical.pingpong.game.screen.OpeningScreen;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class GamePanel extends JPanel implements Runnable {
 
     public static GamePanel INSTANCE;
+    public static Queue<String> PACKETS;
 
     // Pre-defined constant values
     public static final int SCREEN_WIDTH = 1000, SCREEN_HEIGHT = 555, BALL_DIAMETER = 20, PADDLE_WIDTH = 25, PADDLE_HEIGHT = 100;
@@ -18,19 +23,25 @@ public class GamePanel extends JPanel implements Runnable {
 
     private final Thread gameThread;
     private final Random random;
-    private final Score score;
+    private final OpeningScreen openingScreen;
     private Image image;
     private Graphics graphics;
+
+    public final Score score;
+
+    public Ball ball;
     public Paddle firstPaddle, secondPaddle;
-    private Ball ball;
+    public volatile boolean gameStarted, multiplayer;
 
     public GamePanel() {
         INSTANCE = this;
+        PACKETS = new LinkedBlockingQueue<>();
 
         this.random = new Random();
         this.createPaddles();
         this.createBall();
         this.score = new Score();
+        this.openingScreen = new OpeningScreen(this);
 
         // JPanel methods
         this.setFocusable(true);
@@ -60,6 +71,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void move() {
+        if (!gameStarted) return;
+
         firstPaddle.move();
         secondPaddle.move();
         ball.move();
@@ -74,17 +87,14 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void onKeyPress(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.VK_R) {
+            if (!OpeningScreen.IS_HOST && multiplayer) return;
+
             this.createPaddles();
             this.createBall();
             this.score.secondPlayerScore = score.firstPlayerScore = 0;
-        }
 
-        if (event.getKeyCode() == KeyEvent.VK_T) {
-            try {
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            PACKETS.add("f:0:0");
+            PACKETS.add("reset");
         }
     }
 
@@ -94,8 +104,8 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         // larger the values better the accuracy until a very large point
-        if (firstPaddle.y < ball.y) firstPaddle.y += random.nextInt(3, 7);
-        if (firstPaddle.y > ball.y) firstPaddle.y -= random.nextInt(3, 7);
+        if (firstPaddle.y < ball.y) firstPaddle.y += random.nextInt(7, 13);
+        if (firstPaddle.y > ball.y) firstPaddle.y -= random.nextInt(7, 13);
     }
 
     public void botMovement2() {
@@ -104,11 +114,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         // larger the values better the accuracy until a very large point
-        if (secondPaddle.y < ball.y) secondPaddle.y += random.nextInt(3, 7);
-        if (secondPaddle.y > ball.y) secondPaddle.y -= random.nextInt(3, 7);
+        if (secondPaddle.y < ball.y) secondPaddle.y += random.nextInt(7, 13);
+        if (secondPaddle.y > ball.y) secondPaddle.y -= random.nextInt(7, 31);
     }
 
     public void checkCollision() {
+        if (!gameStarted) return;
+
         // Check if paddles moves out of the window
         if (firstPaddle.getY() < 0) firstPaddle.y = 0;
         if (firstPaddle.getY() >= SCREEN_HEIGHT - PADDLE_HEIGHT) firstPaddle.y = SCREEN_HEIGHT - PADDLE_HEIGHT;
@@ -144,7 +156,7 @@ public class GamePanel extends JPanel implements Runnable {
 
          // Winner - loser algorithm
         if (ball.getX() <= 0) {
-            score.secondPlayerScore++;
+            score.updateScore(false);
 
             this.createPaddles();
             this.createBall();
@@ -153,7 +165,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         if (ball.getX() >= SCREEN_WIDTH - BALL_DIAMETER) {
-            score.firstPlayerScore++;
+            score.updateScore(true);
 
             this.createPaddles();
             this.createBall();
@@ -167,7 +179,11 @@ public class GamePanel extends JPanel implements Runnable {
         this.image = createImage(getWidth(), getHeight());
         this.graphics = image.getGraphics();
 
-        draw(graphics);
+        if (!gameStarted) {
+            openingScreen.paint(graphics);
+        } else {
+            draw(graphics);
+        }
 
         g.drawImage(image, 0, 0, this);
     }

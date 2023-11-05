@@ -1,5 +1,7 @@
 package me.despical.pingpong.game;
 
+import me.despical.pingpong.game.screen.OpeningScreen;
+
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
@@ -22,7 +24,14 @@ public class Paddle extends Rectangle {
     }
 
     public void move() {
+        if (OpeningScreen.IS_HOST && id == 2) return;
+        if (!OpeningScreen.IS_HOST && id == 1) return;
+
         y += velocityY;
+
+        String packet = "p:" + y + ":" + id + ":";
+
+        GamePanel.PACKETS.add(packet);
     }
 
     private void setVelocity(int keyCode, int up, int down) {
