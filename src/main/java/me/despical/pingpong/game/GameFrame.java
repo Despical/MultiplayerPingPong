@@ -26,6 +26,8 @@ package me.despical.pingpong.game;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 
 public class GameFrame extends JFrame {
 
@@ -36,7 +38,17 @@ public class GameFrame extends JFrame {
         menu.setForeground(Color.white);
         menu.add(GamePanel.allowBot1);
         menu.add(GamePanel.allowBot2);
+        menu.add(GamePanel.createBarrier);
         menuBar.add(menu);
+
+        GamePanel.createBarrier.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                GamePanel.INSTANCE.barrier = new Barrier();
+                return;
+            }
+
+            GamePanel.INSTANCE.barrier = null;
+        });
 
         setJMenuBar(menuBar);
         this.add(gamePanel);

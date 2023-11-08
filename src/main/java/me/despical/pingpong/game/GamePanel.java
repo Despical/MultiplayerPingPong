@@ -43,7 +43,8 @@ public class GamePanel extends JPanel implements Runnable {
     public static final int SCREEN_WIDTH = 1000, SCREEN_HEIGHT = 555, BALL_DIAMETER = 20, PADDLE_WIDTH = 25, PADDLE_HEIGHT = 100;
     public static final Dimension SCREEN_SIZE = new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT);
     public static JCheckBoxMenuItem allowBot1 = new JCheckBoxMenuItem("Allow Bot 1"),
-                                    allowBot2 = new JCheckBoxMenuItem("Allow Bot 2");
+                                    allowBot2 = new JCheckBoxMenuItem("Allow Bot 2"),
+                                    createBarrier = new JCheckBoxMenuItem("Create Barrier");
 
     private final Thread gameThread;
     private final Random random;
@@ -53,9 +54,10 @@ public class GamePanel extends JPanel implements Runnable {
 
     public final Score score;
 
+    public Barrier barrier;
     public Ball ball;
     public Paddle firstPaddle, secondPaddle;
-    public volatile boolean gameStarted, multiplayer;
+    public volatile boolean gameStarted = true, multiplayer;
 
     public GamePanel() {
         INSTANCE = this;
@@ -66,6 +68,9 @@ public class GamePanel extends JPanel implements Runnable {
         this.createBall();
         this.score = new Score();
         this.openingScreen = new OpeningScreen(this);
+
+        if (createBarrier.getState())
+            barrier = new Barrier();
 
         // JPanel methods
         this.setFocusable(true);
@@ -90,6 +95,8 @@ public class GamePanel extends JPanel implements Runnable {
         secondPaddle.draw(graphics);
         score.draw(graphics);
         ball.draw(graphics);
+
+        if (barrier != null) barrier.draw(graphics);
 
         Toolkit.getDefaultToolkit().sync();
     }
@@ -120,6 +127,10 @@ public class GamePanel extends JPanel implements Runnable {
             PACKETS.add("f:0:0");
             PACKETS.add("reset");
         }
+
+        if (event.getKeyCode() == KeyEvent.VK_T) {
+            ball.giveDefaultSpeed();
+        }
     }
 
     public void botMovement1() {
@@ -138,8 +149,8 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         // larger the values better the accuracy until a very large point
-        if (secondPaddle.y < ball.y) secondPaddle.y += random.nextInt(7, 13);
-        if (secondPaddle.y > ball.y) secondPaddle.y -= random.nextInt(7, 31);
+        if (secondPaddle.y < ball.y) secondPaddle.y += random.nextInt(20, 31);
+        if (secondPaddle.y > ball.y) secondPaddle.y -= random.nextInt(20, 31);
     }
 
     public void checkCollision() {
@@ -155,6 +166,8 @@ public class GamePanel extends JPanel implements Runnable {
         // Ball collision
         if (ball.getY() < 0 || ball.getY() > SCREEN_HEIGHT - BALL_DIAMETER) ball.bound(false);
         if (ball.getX() < 0 || ball.getX() > SCREEN_WIDTH - BALL_DIAMETER) ball.bound(true);
+
+        if (barrier != null) barrier.checkCollision();
 
         // Ball collision with paddles
         if (ball.intersects(firstPaddle)) {
@@ -203,11 +216,11 @@ public class GamePanel extends JPanel implements Runnable {
         this.image = createImage(getWidth(), getHeight());
         this.graphics = image.getGraphics();
 
-        if (!gameStarted) {
-            openingScreen.paint(graphics);
-        } else {
+//        if (!gameStarted) {
+//            openingScreen.paint(graphics);
+//        } else {
             draw(graphics);
-        }
+//        }
 
         g.drawImage(image, 0, 0, this);
     }
