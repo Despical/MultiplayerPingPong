@@ -48,10 +48,14 @@ public class Paddle extends Rectangle {
     }
 
     public void move() {
-        if (OpeningScreen.IS_HOST && id == 2) return;
-        if (!OpeningScreen.IS_HOST && id == 1) return;
+        final var multiplayer = GamePanel.INSTANCE.multiplayer;
+
+        if (multiplayer && OpeningScreen.IS_HOST && id == 2) return;
+        if (multiplayer && !OpeningScreen.IS_HOST && id == 1) return;
 
         y += velocityY;
+
+        if (!multiplayer) return;
 
         String packet = "p:" + y + ":" + id + ":";
 

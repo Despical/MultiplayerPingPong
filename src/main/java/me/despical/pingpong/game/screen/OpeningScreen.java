@@ -82,6 +82,7 @@ public class OpeningScreen implements MouseListener {
 
         if (x >= 392 && x <= 392 + metrics.stringWidth("Create Normal Game") + 15 && y >= 255 && y <= 255 + 15) {
             gamePanel.gameStarted = true;
+            gamePanel.ball.giveDefaultSpeed();
         }
 
         if (x >= 420 && x <= 420 + metrics.stringWidth("Join LAN Game") + 15 && y >= 305 && y <= 330) {
